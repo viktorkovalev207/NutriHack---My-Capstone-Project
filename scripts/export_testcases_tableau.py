@@ -3,7 +3,7 @@ export_testcases_tableau.py
 ===========================
 Builds a SEPARATE, Tableau-ready CSV containing only our curated test cases:
   - 6 real-world Gustavo Gusto pizzas (general-foods engine sanity cases)
-  - 3 banger demo targets (Isostar, Lifefood, MyProtein)
+  - 3 banger demo targets (Lifefood x2, MyProtein) — all real, verified macros
 
 Same column schema as visualizations/nutriscore_tableau.csv, so it imports
 identically — but isolated, so the demo can spotlight these without scrolling
@@ -52,9 +52,9 @@ def demo_targets():
     # exact macros confirmed against the scored market dataset
     return [
         dict(product_type="demo_target", barcode="TEST-DEMO-01",
-             product_name="High Protein Sport Bar Hazelnut", brands="Isostar",
-             categories="protein-bars", energy_kj=620, sugars_g=38.0,
-             sat_fat_g=5.0, salt_g=0.55, fibre_g=7.6, proteins_g=25.0,
+             product_name="Life Bar Oat Snack", brands="Lifefood",
+             categories="protein-bars", energy_kj=1942, sugars_g=19.0,
+             sat_fat_g=4.0, salt_g=0.52, fibre_g=6.0, proteins_g=17.0,
              fat_g="", carbs_g="", fvl_pct=0.0, countries="test"),
         dict(product_type="demo_target", barcode="TEST-DEMO-02",
              product_name="Life Bar High Protein", brands="Lifefood",

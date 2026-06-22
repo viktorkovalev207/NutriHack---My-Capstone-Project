@@ -23,6 +23,14 @@ from nutriscore import score_general_food, classify_product
 CLEAN_CSV  = ROOT / "data" / "clean" / "products_clean.csv"
 SCORED_CSV = ROOT / "data" / "clean" / "products_scored.csv"
 
+# Result columns produced per product. Kept as a constant so the beverages
+# bypass can emit the SAME schema (all-None numerics) without drifting.
+NS_NUMERIC_COLS = [
+    "ns_score", "ns_negative_pts", "ns_positive_pts", "ns_energy_pts",
+    "ns_sugar_pts", "ns_sat_fat_pts", "ns_salt_pts", "ns_protein_pts",
+    "ns_fibre_pts", "ns_fvl_pts", "ns_protein_counted",
+]
+
 
 def score_row(row):
     # Step 1: classify (all protein powders/bars are general_foods in Scope 1)
@@ -31,7 +39,17 @@ def score_row(row):
         category=row.get("categories"),
     )
 
-    # Step 2: score
+    # Step 2: beverages use a DIFFERENT Nutri-Score rule set (own point tables +
+    # the 2024 sweetener malus). The general-foods engine would emit a wrong,
+    # liability-grade letter, so we bypass it entirely and flag for manual
+    # review instead of fabricating a score.
+    if cls.category == "beverages":
+        out = {col: None for col in NS_NUMERIC_COLS}
+        out["ns_category"] = cls.category
+        out["ns_letter"] = "REVIEW_REQUIRED"
+        return out
+
+    # Step 3: score (general foods)
     res = score_general_food(
         energy_kj  = float(row["energy_kj"]),
         sugar_g    = float(row["sugars_g"]),

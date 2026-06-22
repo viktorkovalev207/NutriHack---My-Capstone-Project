@@ -1,5 +1,6 @@
 import sys, os
-sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'src'))
 from nutriscore import thresholds as T
 
 # Replicate the workbook IF-ladder for sugar exactly using the Scenario AA cells

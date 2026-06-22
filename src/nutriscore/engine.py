@@ -26,12 +26,23 @@ from dataclasses import dataclass, asdict
 from . import thresholds as T
 
 
+# Central rounding precision applied to EVERY nutrient value at the single
+# laddering choke-point, BEFORE any threshold comparison. IEEE-754 residue from
+# upstream arithmetic (e.g. simulate()'s base+delta: 8.4 - 5.0 == 3.4000000000000004)
+# must never push a value a hair across a threshold and produce an off-by-one
+# point. 6 dp is far finer than any real nutrient precision yet coarse enough to
+# absorb float noise. Putting it here protects ALL callers, not just simulate().
+_LADDER_DP = 6
+
+
 def _ladder(value, table):
     """points = how many thresholds `value` strictly exceeds (see thresholds.py)."""
+    value = round(value, _LADDER_DP)
     return sum(1 for t in table if value > t)
 
 
 def _fvl_points(fvl_pct):
+    fvl_pct = round(fvl_pct, _LADDER_DP)
     for upper, pts in T.FVL_PCT:
         if fvl_pct <= upper:
             return pts
@@ -152,7 +163,11 @@ def simulate(
 
     modified = dict(base_product)
     for key, delta in changes.items():
-        modified[key] = max(0.0, modified.get(key, 0) + delta)
+        # Round to 6 dp before scoring: float arithmetic (e.g. 0.9 - 0.3 ->
+        # 0.6000000000000001) can land a hair above a Nutri-Score threshold and
+        # flip a point spuriously. 6 dp sits far below the finest threshold
+        # granularity (salt, 0.2 g steps) yet removes the float-error artefact.
+        modified[key] = round(max(0.0, modified.get(key, 0) + delta), 6)
 
     after = _call(modified)
 

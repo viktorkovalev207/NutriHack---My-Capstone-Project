@@ -80,6 +80,27 @@ def step2_plausibility(df):
     return df
 
 
+def step2b_energy_consistency(df):
+    """Drop rows whose STATED energy is physically impossible vs their macros.
+
+    A food cannot contain less energy than its macronutrients already hold.
+    Atwater lower bound (kJ): energy_kj >= 0.8 * (17*protein + 17*carbs + 37*fat),
+    where 0.8 leaves 20% slack for measurement/rounding noise. Applied ONLY where
+    energy and all three macros are present, so rows awaiting energy imputation
+    (step3) are untouched — and imputed energy is consistent by construction.
+    Catches corrupt OFF entries such as a bar listing 620 kJ while its macros
+    imply >=1400 kJ, which would otherwise score with a far-too-low energy point.
+    """
+    have = (df["energy_kj"].notna() & df["proteins_g"].notna()
+            & df["carbs_g"].notna() & df["fat_g"].notna())
+    lower = 0.8 * (17 * df["proteins_g"] + 17 * df["carbs_g"] + 37 * df["fat_g"])
+    bad = have & (df["energy_kj"] < lower)
+    before = len(df)
+    df = df[~bad].copy()
+    print(f"[2b] Drop impossible-low energy: {before - len(df):>4} removed → {len(df):,} remain")
+    return df
+
+
 def step3_impute_energy(df):
     """Estimate energy_kj from macros where kJ is missing but macros are present."""
     missing_energy = df["energy_kj"].isna()
@@ -159,6 +180,7 @@ def clean():
     df = load(RAW_CSV)
     df = step1_drop_no_name(df)
     df = step2_plausibility(df)
+    df = step2b_energy_consistency(df)
     df = step3_impute_energy(df)
     df = step4_fvl_zero(df)
     df = step5_median_impute(df)

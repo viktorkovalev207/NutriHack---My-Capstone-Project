@@ -1,11 +1,14 @@
 import openpyxl, re
 import sys, os
-sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'src'))
 from nutriscore import thresholds as T
 
-wb = openpyxl.load_workbook('data/raw/nutriscore_workbook.xlsx', data_only=True)
+_WB = os.path.join(ROOT, 'data', 'raw', 'nutriscore_workbook.xlsx')
+wb = openpyxl.load_workbook(_WB, data_only=True)
 sc = wb['Scenario']
-wbf = openpyxl.load_workbook('data/raw/nutriscore_workbook.xlsx', data_only=False)
+wbf = openpyxl.load_workbook(_WB, data_only=False)
 gff = wbf['General foods']
 
 ref_re = re.compile(r'Scenario!\$([A-Z]+)\$(\d+)')

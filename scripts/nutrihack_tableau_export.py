@@ -66,6 +66,12 @@ def add_simulations(df):
         deltas  = []
         improved = []
         for _, row in df.iterrows():
+            # Skip products the engine did not score (beverages -> REVIEW_REQUIRED):
+            # running solid-food what-ifs on them would emit misleading grades.
+            if pd.isna(row.get("ns_score")):
+                scores.append(None); letters.append(None)
+                deltas.append(None); improved.append(None)
+                continue
             base = build_base(row)
             r = simulate(base, changes)
             scores.append(r.score_after)

@@ -50,10 +50,13 @@ def _demo_targets_note():
         n = len(pd.read_csv(CANDIDATES_CSV)) if CANDIDATES_CSV.exists() else 0
     except Exception:
         n = 0
+    # Isostar dropped: its OFF energy (620 kJ) was physically impossible vs its
+    # macros (~1440 kJ) and the flip only held on that corrupt value. Replaced by
+    # two energy-validated Lifefood bars.
     picks = (
-        "1. **Isostar – High Protein Sport Bar Hazelnut**: Zucker 38→31 g (−19 %) ⇒ D→C\n"
-        "2. **Lifefood – Life Bar High Protein**: Zucker 43→34 g (−21 %) ⇒ D→C\n"
-        "3. **MyProtein – Impact Vegan Protein**: Salz 3,0→2,4 g (−20 %) ⇒ D→C"
+        "1. **Lifefood – Life Bar Oat Snack**: Zucker −5 g ⇒ D→C (energie-validiert)\n"
+        "2. **Lifefood – Life Bar High Protein**: Zucker −10 g ⇒ D→C\n"
+        "3. **MyProtein – Impact Vegan Protein**: Salz 3,0→2,4 g (Live-Regler −0,6 g) ⇒ D→C"
     )
     return n, picks
 

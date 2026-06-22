@@ -45,6 +45,7 @@ nutriscore.thresholds mit Zellbezug zum offiziellen Workbook.
 """
 
 from __future__ import annotations
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -83,6 +84,18 @@ _WATER_KEYWORDS = (
 
 def _matches_any(text: str, keywords) -> bool:
     return any(k in text for k in keywords)
+
+
+def _matches_word(text: str, keywords) -> bool:
+    """Whole-word keyword match (no \\w on either side of the keyword).
+
+    Used for the liquid-form keywords, which include short tokens like "cola"
+    and "soda". A plain substring test mis-fires badly here: "cola" is inside
+    "choCOLAte"/"chocolat"/"cioccolate", so substring matching routed ~1,400
+    chocolate protein bars/powders to 'beverages'. Word boundaries fix that
+    while still matching the keyword as a standalone word.
+    """
+    return any(re.search(rf"(?<!\w){re.escape(k)}(?!\w)", text) for k in keywords)
 
 
 def classify_product(
@@ -136,7 +149,8 @@ def classify_product(
 
     # 3) Zustand UNBEKANNT -> nicht raten.
     #    Nur eine eindeutige Getränke-FORM im Namen darf beverages vorschlagen.
-    if _matches_any(haystack, _LIQUID_FORM_KEYWORDS):
+    #    Wortgenauer Abgleich: "cola"/"soda" dürfen NICHT in "chocolate" greifen.
+    if _matches_word(haystack, _LIQUID_FORM_KEYWORDS):
         is_water = _matches_any(haystack, _WATER_KEYWORDS)
         return ClassificationResult(
             category="beverages", is_water=is_water,
