@@ -13,7 +13,9 @@ import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from nutrihack_clean import (step2_plausibility, step2b_energy_consistency,
-                             step3_impute_energy, step5_median_impute)
+                             step3_impute_energy, step4_fvl_zero,
+                             step5_median_impute, snapshot_missing,
+                             step_provenance)
 
 
 def test_step2b_exact_boundary_is_kept():
@@ -76,6 +78,32 @@ def test_step5_median_impute_per_category():
     # harmless downstream (step7 rounds to 2 dp, engine ladders round to 6 dp).
     assert abs(out.loc[2, "salt_g"] - 0.3) < 1e-9, out.loc[2, "salt_g"]
     assert out.loc[4, "salt_g"] == 2.0, out.loc[4, "salt_g"]
+
+
+def test_provenance_flags_imputed_values():
+    """Guessed values are flagged per row; the structural fvl=0 assumption is
+    tracked separately and must NOT taint 'measured' status."""
+    df = pd.DataFrame({
+        "product_type": ["bar", "bar", "bar"],
+        "energy_kj": [1000.0] * 3, "sugars_g": [5.0] * 3, "sat_fat_g": [1.0] * 3,
+        "salt_g": [0.2, 0.4, float("nan")],           # row 2: salt guessed
+        "fibre_g": [1.0] * 3, "proteins_g": [10.0] * 3,
+        "fat_g": [1.0] * 3, "carbs_g": [1.0] * 3,
+        "fvl_pct": [0.0, float("nan"), 0.0],          # row 1: structural fill
+    })
+    guess_na, fvl_na = snapshot_missing(df)
+    df = step4_fvl_zero(df)
+    df = step5_median_impute(df)
+    df = step_provenance(df, guess_na, fvl_na)
+
+    # row 0: fully measured
+    assert not df.loc[0, "imputed_any"] and df.loc[0, "data_basis"] == "measured"
+    # row 1: fvl assumed zero — flagged, but still 'measured' (no guess involved)
+    assert df.loc[1, "fvl_assumed_zero"] and not df.loc[1, "imputed_any"]
+    assert df.loc[1, "data_basis"] == "measured"
+    # row 2: salt was guessed via category median
+    assert df.loc[2, "imp_salt_g"] and df.loc[2, "imputed_any"]
+    assert df.loc[2, "data_basis"] == "contains_estimates"
 
 
 if __name__ == "__main__":

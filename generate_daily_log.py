@@ -41,7 +41,12 @@ def _market_summary():
                  .unstack(fill_value=0).reindex(columns=list("ABCDE"), fill_value=0))
     rows = [f"  - **{t}**: " + ", ".join(f"{g} {by_type.loc[t, g]:,}" for g in "ABCDE")
             for t in by_type.index]
-    return f"{len(df):,} Produkte gescort — Verteilung: {dist_line}", "\n".join(rows)
+    head = f"{len(df):,} Produkte gescort — Verteilung: {dist_line}"
+    if "imputed_any" in df.columns:
+        n_imp = int(df["imputed_any"].sum())
+        head += (f"\n- Daten-Provenienz: {n_imp:,} Produkte ({n_imp/len(df)*100:.1f} %) "
+                 f"enthalten ≥1 imputierten Scoring-Wert (`data_basis` im Export)")
+    return head, "\n".join(rows)
 
 
 def _demo_targets_note():

@@ -23,6 +23,11 @@ Cleaning decisions (documented for Limitations & Bias section):
      (energy_kj, sugars_g, sat_fat_g, salt_g, proteins_g)
   7. fibre_g NaN: impute with category median (fibre is lowest-impact positive
      component; median imputation understates fibre → conservatively bad for score)
+  8. PROVENANCE: every imputed value is flagged per row (imp_<col>, imputed_any,
+     data_basis = measured|contains_estimates). A score based on guessed salt is
+     not certification-grade; the flags make that visible downstream (Tableau)
+     instead of hiding it. fvl_assumed_zero is tracked separately (structural
+     conservative assumption, not a guess).
 """
 
 import sys, os
@@ -52,6 +57,13 @@ CAPS = {
 
 # Columns required for Nutri-Score scoring (engine cannot run without these)
 SCORING_COLS = ["energy_kj", "sugars_g", "sat_fat_g", "salt_g", "proteins_g"]
+
+# Score-relevant columns whose imputation is a GUESS (Atwater estimate or
+# category median) and must therefore be flagged per row in the output.
+# fvl_pct is deliberately NOT in this list: filling it with 0 is a structural
+# assumption (protein powders/bars contain no fruit/veg; 0 is the worst case
+# FOR the score, so it can never flatter a product) — it gets its own flag.
+GUESS_COLS = ["energy_kj", "sugars_g", "sat_fat_g", "salt_g", "fibre_g", "proteins_g"]
 
 
 def load(path):
@@ -152,6 +164,40 @@ def step5_median_impute(df):
     return df
 
 
+def snapshot_missing(df):
+    """Pre-imputation NaN snapshot — the basis for the provenance flags.
+
+    Call BEFORE steps 3-5 (the imputing steps). Returns (guess_na, fvl_na).
+    """
+    return df[GUESS_COLS].isna(), df["fvl_pct"].isna()
+
+
+def step_provenance(df, guess_na, fvl_na):
+    """Attach per-row imputation provenance so no estimated value can hide.
+
+    A manufacturer-facing 'certification' tool must distinguish scores computed
+    from measured label values from scores that rest on statistical guesses.
+    Adds, per row:
+      imp_<col>        True where <col> was NaN pre-imputation and is filled now
+      imputed_any      True if ANY scoring-relevant value was guessed
+      data_basis       'measured' | 'contains_estimates'  (Tableau-friendly)
+      fvl_assumed_zero True where fvl_pct was filled with the structural 0
+                       (tracked separately — a documented conservative
+                        assumption, not a guess; it can only worsen the score)
+    """
+    for col in GUESS_COLS:
+        df[f"imp_{col}"] = (guess_na.loc[df.index, col] & df[col].notna())
+    df["fvl_assumed_zero"] = fvl_na.loc[df.index] & df["fvl_pct"].notna()
+    imp_cols = [f"imp_{c}" for c in GUESS_COLS]
+    df["imputed_any"] = df[imp_cols].any(axis=1)
+    df["data_basis"] = df["imputed_any"].map(
+        {True: "contains_estimates", False: "measured"})
+    n = int(df["imputed_any"].sum())
+    print(f"[7] Provenance: {n:,} of {len(df):,} rows contain >=1 imputed "
+          f"scoring value ({n / len(df) * 100:.1f}%)")
+    return df
+
+
 def step6_drop_still_missing(df):
     """Drop rows that are still missing any scoring-critical value after imputation."""
     before = len(df)
@@ -196,10 +242,12 @@ def clean():
     df = step1_drop_no_name(df)
     df = step2_plausibility(df)
     df = step2b_energy_consistency(df)
+    guess_na, fvl_na = snapshot_missing(df)   # provenance baseline (pre-impute)
     df = step3_impute_energy(df)
     df = step4_fvl_zero(df)
     df = step5_median_impute(df)
     df = step6_drop_still_missing(df)
+    df = step_provenance(df, guess_na, fvl_na)
     df = step7_round_and_types(df)
 
     df.to_csv(CLEAN_CSV, index=False, encoding="utf-8")

@@ -75,6 +75,14 @@ def run():
     print(f"Test cases: {len(df)} ({(df.product_type=='pizza_test').sum()} pizzas, "
           f"{(df.product_type=='demo_target').sum()} demo targets)")
 
+    # Provenance: every test-case macro is a verified label value — nothing is
+    # imputed. Set the flags explicitly so the schema matches the market export.
+    for col in ("energy_kj", "sugars_g", "sat_fat_g", "salt_g", "fibre_g", "proteins_g"):
+        df[f"imp_{col}"] = False
+    df["imputed_any"] = False
+    df["fvl_assumed_zero"] = False
+    df["data_basis"] = "measured"
+
     # 1) score (adds ns_* columns)
     score_cols = df.apply(score_row, axis=1, result_type="expand")
     df = pd.concat([df, score_cols], axis=1)

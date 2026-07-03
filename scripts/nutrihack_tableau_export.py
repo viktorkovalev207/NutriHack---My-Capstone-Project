@@ -111,6 +111,10 @@ def tableau_cols(df):
         "sim_salt_minus03_delta",    "sim_salt_minus03_improved",
         "sim_fibre_plus3_score",     "sim_fibre_plus3_letter",
         "sim_fibre_plus3_delta",     "sim_fibre_plus3_improved",
+        # Data provenance (honesty layer: which scores rest on guessed values)
+        "data_basis", "imputed_any", "fvl_assumed_zero",
+        "imp_energy_kj", "imp_sugars_g", "imp_sat_fat_g",
+        "imp_salt_g", "imp_fibre_g", "imp_proteins_g",
         # Meta
         "countries",
     ]
