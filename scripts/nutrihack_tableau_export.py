@@ -124,12 +124,16 @@ def run():
     df = pd.read_csv(SCORED_CSV, dtype={"barcode": str})
     print(f"Loaded {len(df):,} scored products")
 
-    print("Computing What-If scenarios (6 x 9,893 rows) ...")
+    print(f"Computing What-If scenarios (6 x {len(df):,} rows) ...")
     df = add_simulations(df)
 
     df_out = tableau_cols(df)
     df_out.to_csv(TABLEAU_CSV, index=False, encoding="utf-8")
-    print(f"Tableau export written to:\n  {TABLEAU_CSV}")
+    # The live Tableau workbook reads the XLSX twin (Tableau's CSV parser mangled
+    # this file's headers). Emit it here so CSV and XLSX can never diverge.
+    xlsx = TABLEAU_CSV.parent / "nutriscore_tableau_new.xlsx"
+    df_out.to_excel(xlsx, index=False, sheet_name="data")
+    print(f"Tableau export written to:\n  {TABLEAU_CSV}\n  {xlsx}")
 
     # Quick Simulator insight
     print("\n=== SIMULATOR INSIGHTS ===")

@@ -7,10 +7,11 @@ Builds a SEPARATE, Tableau-ready CSV containing only our curated test cases:
 
 Same column schema as visualizations/nutriscore_tableau.csv, so it imports
 identically — but isolated, so the demo can spotlight these without scrolling
-through 9,893 rows. A `case_group` column lets Tableau filter pizza_test vs
-demo_target.
+through ~10k market rows. A `case_group` column lets Tableau filter pizza_test
+vs demo_target.
 
 Output: visualizations/nutriscore_tableau_testcases.csv
+        + the XLSX twin the live Tableau workbook actually reads
 """
 import sys
 import pandas as pd
@@ -85,7 +86,11 @@ def run():
 
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(OUT_CSV, index=False, encoding="utf-8")
-    print(f"Wrote {len(out)} rows -> {OUT_CSV.relative_to(ROOT)}")
+    # XLSX twin: the live Tableau workbook reads this file (Tableau's CSV parser
+    # mangled the numeric headers of this CSV). Keep both in sync automatically.
+    xlsx = OUT_CSV.parent / "nutriscore_tableau_testcases_new.xlsx"
+    out.to_excel(xlsx, index=False, sheet_name="data")
+    print(f"Wrote {len(out)} rows -> {OUT_CSV.relative_to(ROOT)} + {xlsx.name}")
 
     print("\n=== Test-case scores (base -> best single lever) ===")
     for _, r in out.iterrows():

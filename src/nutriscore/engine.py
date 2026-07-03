@@ -22,8 +22,32 @@ so a match proves the transcription of both thresholds and the cap rule is
 faithful. (The workbook itself ships only 3 worked example products, far too few
 to trust on their own — hence the synthetic-grid oracle.)
 """
+import math
 from dataclasses import dataclass, asdict
 from . import thresholds as T
+
+
+def _validate_inputs(**nutrients):
+    """Reject mathematically invalid input instead of grading it.
+
+    Without this, negative grams score as 0 points everywhere and NaN flows
+    through every `>` comparison as False — both silently produce a confident
+    (and wrong) letter, e.g. sugar_g=-5 -> "A". For a certification tool the
+    only safe behavior is to refuse.
+
+    Deliberately NOT enforced here: upper plausibility bounds (sugar > 100 g/100g,
+    kcal-mistyped-as-kJ). Those live in the cleaning pipeline (step2/step2b),
+    because simulate() may legitimately push values past natural bounds
+    (e.g. protein +10 on a 95 g isolate) and must not crash mid-what-if.
+    """
+    for name, value in nutrients.items():
+        v = float(value)
+        if math.isnan(v):
+            raise ValueError(f"{name} is NaN — refusing to grade incomplete data "
+                             "(impute or exclude upstream instead)")
+        if v < 0:
+            raise ValueError(f"{name}={v} is negative — physically impossible, "
+                             "refusing to grade")
 
 
 # Central rounding precision applied to EVERY nutrient value at the single
@@ -78,6 +102,9 @@ def score_general_food(
     fvl_percent: float = 0.0,
 ) -> ScoreResult:
     """Score a SOLID/general food. All nutrients per 100 g; salt in g (not sodium)."""
+    _validate_inputs(energy_kj=energy_kj, sugar_g=sugar_g, sat_fat_g=sat_fat_g,
+                     salt_g=salt_g, fibre_g=fibre_g, protein_g=protein_g,
+                     fvl_percent=fvl_percent)
     energy_pts = _ladder(energy_kj, T.ENERGY_KJ)
     sat_fat_pts = _ladder(sat_fat_g, T.SAT_FAT_G)
     sugar_pts = _ladder(sugar_g, T.SUGAR_G)
@@ -147,6 +174,18 @@ def simulate(
     """
     PARAM_KEYS = ("energy_kj", "sugar_g", "sat_fat_g", "salt_g",
                   "fibre_g", "protein_g", "fvl_percent")
+
+    # A typo'd key must fail loudly. Unknown keys in `changes` would silently
+    # produce before==after ("no improvement"); unknown keys in `base_product`
+    # are worse — the real nutrient defaults to 0 g and INFLATES the grade.
+    unknown = set(changes) - set(PARAM_KEYS)
+    if unknown:
+        raise ValueError(f"simulate(): unknown key(s) in changes: {sorted(unknown)}; "
+                         f"valid keys: {PARAM_KEYS}")
+    unknown = set(base_product) - set(PARAM_KEYS)
+    if unknown:
+        raise ValueError(f"simulate(): unknown key(s) in base_product: {sorted(unknown)}; "
+                         f"valid keys: {PARAM_KEYS}")
 
     def _call(values):
         return score_general_food(

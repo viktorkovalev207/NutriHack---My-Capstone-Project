@@ -201,3 +201,6 @@ if __name__ == "__main__":
         print(f"{label:<38}{r.category:<15}{str(r.sweetener_malus_applies):<7}"
               f"{str(r.needs_review):<7}{'OK' if ok else 'FAIL <<<'}")
     print("\nRESULT:", "PASS" if allok else "FAIL")
+    # Gating: ein FAIL muss den Build brechen, nicht nur gedruckt werden.
+    import sys
+    sys.exit(0 if allok else 1)

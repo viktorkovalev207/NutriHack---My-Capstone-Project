@@ -68,15 +68,26 @@ def step1_drop_no_name(df):
 
 
 def step2_plausibility(df):
-    """Mark and remove rows where any nutrient exceeds its physical cap."""
+    """Remove rows outside physical bounds (upper caps AND negative values).
+
+    Negative nutrient amounts are physically impossible; the scoring engine
+    refuses them (ValueError), so they must never leave this stage. Exception:
+    fvl_pct — OFF's "estimate-from-ingredients" occasionally yields small
+    negative estimates; the rest of such a row is fine, so we clip to 0
+    (the conservative floor for protein products) instead of dropping.
+    """
+    n_clip = int((df["fvl_pct"] < 0).sum()) if "fvl_pct" in df.columns else 0
+    if n_clip:
+        df.loc[df["fvl_pct"] < 0, "fvl_pct"] = 0.0
     flag = pd.Series(False, index=df.index)
     for col, cap in CAPS.items():
         if col in df.columns:
-            over = df[col].notna() & (df[col] > cap)
-            flag |= over
+            bad = df[col].notna() & ((df[col] > cap) | (df[col] < 0))
+            flag |= bad
     before = len(df)
     df = df[~flag].copy()
-    print(f"[2] Drop implausible values:    {before - len(df):>4} removed → {len(df):,} remain")
+    print(f"[2] Drop implausible values:    {before - len(df):>4} removed, "
+          f"{n_clip} negative fvl_pct clipped → {len(df):,} remain")
     return df
 
 
@@ -90,6 +101,10 @@ def step2b_energy_consistency(df):
     (step3) are untouched — and imputed energy is consistent by construction.
     Catches corrupt OFF entries such as a bar listing 620 kJ while its macros
     imply >=1400 kJ, which would otherwise score with a far-too-low energy point.
+
+    Boundary semantics (pinned by tests/test_clean_pipeline.py): rows EXACTLY at
+    the 0.8x bound are KEPT — the comparison is strict `<`. Changing it to `<=`
+    silently changes which products get certified; do that only deliberately.
     """
     have = (df["energy_kj"].notna() & df["proteins_g"].notna()
             & df["carbs_g"].notna() & df["fat_g"].notna())

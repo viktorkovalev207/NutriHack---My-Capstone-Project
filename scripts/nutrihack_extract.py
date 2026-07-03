@@ -123,14 +123,23 @@ def extract():
     for category_slug, product_type in CATEGORIES.items():
         print(f"\n--- Fetching category: {category_slug} ---")
         page = 1
+        consecutive_failures = 0
         while True:
             print(f"  page {page} ...", end=" ", flush=True)
             data = _fetch_page(category_slug, page, session)
             if data is None:
-                print("SKIPPED (all retries failed)")
+                consecutive_failures += 1
+                print(f"SKIPPED (all retries failed, {consecutive_failures}/3)")
+                if consecutive_failures >= 3:
+                    # API is down, not a transient page glitch — a bare
+                    # `page += 1; continue` would loop forever here.
+                    print(f"  Aborting category '{category_slug}' after 3 "
+                          f"consecutive failed pages.")
+                    break
                 page += 1
                 time.sleep(5)
                 continue
+            consecutive_failures = 0
             products = data.get("products", [])
             print(f"{len(products)} products")
 

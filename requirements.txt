@@ -1,0 +1,7 @@
+# NutriHack — runtime + test dependencies
+# Engine (src/nutriscore) is stdlib-only; these serve the pipeline and tests.
+pandas>=2.0
+openpyxl>=3.1        # workbook parsing + xlsx exports
+requests>=2.31       # OFF API extraction
+formulas>=1.2        # independent oracle (tests/oracle_validation.py)
+pytest>=8.0          # optional: all tests also run standalone via python tests/run_all.py
