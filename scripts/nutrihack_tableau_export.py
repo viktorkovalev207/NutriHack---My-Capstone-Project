@@ -43,7 +43,9 @@ SCENARIOS = {
     "sim_protein_plus5":  {"protein_g": +5.0},
     "sim_protein_plus10": {"protein_g": +10.0},
     "sim_salt_minus03":   {"salt_g":    -0.3},
+    "sim_salt_minus06":   {"salt_g":    -0.6},
     "sim_fibre_plus3":    {"fibre_g":   +3.0},
+    "sim_fibre_plus6":    {"fibre_g":   +6.0},
 }
 
 
@@ -109,8 +111,12 @@ def tableau_cols(df):
         "sim_protein_plus10_delta",  "sim_protein_plus10_improved",
         "sim_salt_minus03_score",    "sim_salt_minus03_letter",
         "sim_salt_minus03_delta",    "sim_salt_minus03_improved",
+        "sim_salt_minus06_score",    "sim_salt_minus06_letter",
+        "sim_salt_minus06_delta",    "sim_salt_minus06_improved",
         "sim_fibre_plus3_score",     "sim_fibre_plus3_letter",
         "sim_fibre_plus3_delta",     "sim_fibre_plus3_improved",
+        "sim_fibre_plus6_score",     "sim_fibre_plus6_letter",
+        "sim_fibre_plus6_delta",     "sim_fibre_plus6_improved",
         # Data provenance (honesty layer: which scores rest on guessed values)
         "data_basis", "imputed_any", "fvl_assumed_zero",
         "imp_energy_kj", "imp_sugars_g", "imp_sat_fat_g",
