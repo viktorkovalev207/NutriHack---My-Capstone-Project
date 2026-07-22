@@ -13,6 +13,7 @@ data/
 visualizations/*.csv
 visualizations/~*.twbr
 visualizations/*.twbx
+visualizations/*.hyper
 visualizations/v2.twb
 
 # Editor / OS
