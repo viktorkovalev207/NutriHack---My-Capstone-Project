@@ -14,6 +14,8 @@ visualizations/*.csv
 visualizations/~*.twbr
 visualizations/*.twbx
 visualizations/*.hyper
+# ...but DO track the final packaged workbook (runnable defense deliverable)
+!visualizations/Nutrihack_Final.twbx
 visualizations/v2.twb
 
 # Editor / OS
