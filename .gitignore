@@ -25,6 +25,7 @@ visualizations/v2.twb
 # Local notes & scratch (personal second brain, not project source)
 obsidian_vault/
 Dokument.txt
+docs/defense_transcript.md
 
 # Claude local settings
 .claude/settings.local.json
